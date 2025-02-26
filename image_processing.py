@@ -16,24 +16,25 @@ class ImageLoader(object):
         return pixels.reshape(self.image_data.shape)
 
 
-class ColorProfile(object):
-    def __init__(self, color_chunk, image_data: ImageLoader):
-        self.percentage =  len(color_chunk) * 100 / len(image_data.pixels_hsv)
-
-        self.saturations = np.sort(color_chunk[:, 1])
-        self.saturation_max = np.max(self.saturations)
-        self.saturation_min = np.min(self.saturations)
-        self.saturation_mean = np.mean(self.saturations)
-        self.saturation_median = np.median(self.saturations)
-
-        self.values = np.sort(color_chunk[:,2])
-        self.value_max = np.max(self.values)
-        self.value_min = np.min(self.values)
-        self.value_mean = np.mean(self.values)
-        self.value_median = np.median(self.values)
 
 
 class ImageAnalyzer(object):
+    class ColorProfile(object):
+        def __init__(self, color_chunk, image_data: ImageLoader):
+            self.percentage = len(color_chunk) * 100 / len(image_data.pixels_hsv)
+
+            self.saturation = np.sort(color_chunk[:, 1])
+            self.saturation_max = np.max(self.saturation)
+            self.saturation_min = np.min(self.saturation)
+            self.saturation_mean = np.mean(self.saturation)
+            self.saturation_median = np.median(self.saturation)
+
+            self.values = np.sort(color_chunk[:, 2])
+            self.value_max = np.max(self.values)
+            self.value_min = np.min(self.values)
+            self.value_mean = np.mean(self.values)
+            self.value_median = np.median(self.values)
+
     def __init__(self, image_data: ImageLoader):
         self.image_data = image_data
         self.analyze_result = {}
@@ -45,15 +46,15 @@ class ImageAnalyzer(object):
         for hue_chunk_end in range(len(pixels_sorted_by_hue)):
             if pixels_sorted_by_hue[hue_chunk_end, 0] != pixels_sorted_by_hue[hue_chunk_start, 0] :
                 hue_chunk = pixels_sorted_by_hue[hue_chunk_start:hue_chunk_end]
-                self.analyze_result.update({pixels_sorted_by_hue[hue_chunk_start, 0]:ColorProfile(hue_chunk, self.image_data)})
+                self.analyze_result.update({pixels_sorted_by_hue[hue_chunk_start, 0]:self.ColorProfile(hue_chunk, self.image_data)})
                 hue_chunk_start = hue_chunk_end
         self.hue_list = list(self.analyze_result.keys())
 
-    def get_palette(self, percentage=1):
+    def get_palette(self, percentage=1, saturation=0):
         palette = {}
         for key in list(self.analyze_result.keys()):
             color = self.analyze_result[key]
-            if color.percentage >= percentage:
+            if color.percentage >= percentage and color.saturation_median >= saturation:
                 hsv_color = [key, color.saturation_median, color.value_median]
                 rgb_color = cv2.cvtColor(np.array([[hsv_color]], dtype=np.uint8), cv2.COLOR_HSV2RGB)
                 palette.update({color.percentage: rgb_color[0,0]})
@@ -65,19 +66,36 @@ analyze = ImageAnalyzer(image)
 
 analyze.color_analyzing()
 
-palette = analyze.get_palette(percentage=0.05)
+palette = analyze.get_palette(percentage=0.01, saturation=1)
 percentages = np.sort(list(palette.keys()))
 
+num_colors = len(percentages)  # Number of colors
+cols = min(num_colors, 10)  # Max 5 colors per row
+rows = (num_colors + cols - 1) // cols  # Compute number of rows needed
 
-for p in percentages:
-    print(palette[p])
-    rgb = palette[p]
-    print(rgb)
-    block = np.empty((10,10,3), dtype=np.uint8)
-    block[:,:] = rgb
-    plt.imshow(block)
-    plt.show()
+fig, axes = plt.subplots(rows, cols, figsize=(cols * 2, rows * 2))  # Adjust figure size
 
+# If only one row, axes may not be a 2D array, so we ensure it’s iterable
+axes = np.array(axes).reshape(rows, cols)
+
+for idx, p in enumerate(percentages):
+    rgb = palette[p]  # Extract RGB color
+    row, col = divmod(idx, cols)  # Calculate grid position
+
+    # Create 10x10 block of the color
+    block = np.full((10, 10, 3), rgb, dtype=np.uint8)
+
+    # Plot the block in the corresponding subplot
+    axes[row, col].imshow(block)
+    axes[row, col].axis("off")  # Hide axis for a cleaner look
+    axes[row, col].set_title(f"{p:.2f}%")  # Optional: Show percentage
+
+# Remove empty subplots if the last row isn't full
+for i in range(idx + 1, rows * cols):
+    fig.delaxes(axes.flatten()[i])
+
+plt.tight_layout()
+plt.show()
 
 
 
