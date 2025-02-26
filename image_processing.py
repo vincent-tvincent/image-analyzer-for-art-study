@@ -19,6 +19,7 @@ class ImageLoader(object):
 
 
 class ImageAnalyzer(object):
+    #data type for store the information of color been extract from this image. Each single colorProfile object repreasent the information of colors with one certain hue value
     class ColorProfile(object):
         def __init__(self, color_chunk, image_data: ImageLoader):
             self.percentage = len(color_chunk) * 100 / len(image_data.pixels_hsv)
@@ -40,6 +41,7 @@ class ImageAnalyzer(object):
         self.analyze_result = {}
         self.hue_list = []
 
+    # extract all the color on the image and store them in list
     def color_analyzing(self):
         pixels_sorted_by_hue = self.image_data.pixels_hsv[np.argsort(self.image_data.pixels_hsv[:,0])]
         hue_chunk_start = 0
@@ -50,6 +52,7 @@ class ImageAnalyzer(object):
                 hue_chunk_start = hue_chunk_end
         self.hue_list = list(self.analyze_result.keys())
 
+    #get palette with some filter rules, only select the median value of each hue existed on the image
     def get_palette(self, percentage=1, saturation=0):
         palette = {}
         for key in list(self.analyze_result.keys()):
@@ -60,13 +63,16 @@ class ImageAnalyzer(object):
                 palette.update({color.percentage: rgb_color[0,0]})
         return palette
 
+def rgb_to_hex(rgb):
+    return "#{:02x}{:02x}{:02x}".format(rgb[0], rgb[1], rgb[2])
+
 # Load image and convert to RGB
 image = ImageLoader('img1.png')
 analyze = ImageAnalyzer(image)
 
 analyze.color_analyzing()
 
-palette = analyze.get_palette(percentage=0.01, saturation=1)
+palette = analyze.get_palette(percentage=0.01, saturation=35)
 percentages = np.sort(list(palette.keys()))
 
 num_colors = len(percentages)  # Number of colors
@@ -88,7 +94,7 @@ for idx, p in enumerate(percentages):
     # Plot the block in the corresponding subplot
     axes[row, col].imshow(block)
     axes[row, col].axis("off")  # Hide axis for a cleaner look
-    axes[row, col].set_title(f"{p:.2f}%")  # Optional: Show percentage
+    axes[row, col].set_title(f"{p:.2f}% {rgb_to_hex(rgb)}")  # Optional: Show percentage
 
 # Remove empty subplots if the last row isn't full
 for i in range(idx + 1, rows * cols):
