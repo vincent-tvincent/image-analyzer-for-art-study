@@ -63,9 +63,14 @@ class ImageAnalyzer(object):
                 palette.update({color.percentage: rgb_color[0,0]})
         return palette
 
+
+# a useful hex code conversion approach able to been used indipendent from color analyzer
 def rgb_to_hex(rgb):
     return "#{:02x}{:02x}{:02x}".format(rgb[0], rgb[1], rgb[2])
 
+
+
+# for demo only
 # Load image and convert to RGB
 image = ImageLoader('img1.png')
 analyze = ImageAnalyzer(image)
