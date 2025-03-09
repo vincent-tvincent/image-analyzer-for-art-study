@@ -53,11 +53,11 @@ class ImageAnalyzer(object):
         self.hue_list = list(self.analyze_result.keys())
 
     #get palette with some filter rules, only select the median value of each hue existed on the image
-    def get_palette(self, percentage=1, saturation=0):
+    def get_palette(self, percentage=0.01, saturation=0, brightness=0):
         palette = {}
         for key in list(self.analyze_result.keys()):
             color = self.analyze_result[key]
-            if color.percentage >= percentage and color.saturation_median >= saturation:
+            if color.percentage >= percentage and color.saturation_median >= saturation and color.value_median >= brightness:
                 hsv_color = [key, color.saturation_median, color.value_median]
                 rgb_color = cv2.cvtColor(np.array([[hsv_color]], dtype=np.uint8), cv2.COLOR_HSV2RGB)
                 palette.update({color.percentage: rgb_color[0,0]})
@@ -70,14 +70,15 @@ def rgb_to_hex(rgb):
 
 
 
+
 # for demo only
 # Load image and convert to RGB
-image = ImageLoader('img1.png')
+image = ImageLoader('img2.jpg')
 analyze = ImageAnalyzer(image)
 
 analyze.color_analyzing()
 
-palette = analyze.get_palette(percentage=0.01, saturation=35)
+palette = analyze.get_palette(percentage=0.01, saturation=35, brightness=50)
 percentages = np.sort(list(palette.keys()))
 
 num_colors = len(percentages)  # Number of colors
